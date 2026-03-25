@@ -84,6 +84,8 @@ def rename_member():
 def install_script():
     """Serves the install script that friends run once."""
     server_url = request.host_url.rstrip("/")
+    if request.headers.get("X-Forwarded-Proto") == "https":
+        server_url = server_url.replace("http://", "https://")
     script = f"""#!/bin/bash
 # Claude Usage Tracker - One-time install
 # This wraps the claude command to track session usage.
