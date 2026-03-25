@@ -61,7 +61,8 @@ def message():
     """Called by the Claude Code hook on every response."""
     body = request.get_json(force=True)
     hostname = body.get("hostname", "unknown")
-    ts = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc)
+    ts = now.isoformat()
 
     data = load_data()
 
@@ -75,6 +76,36 @@ def message():
         "hostname": hostname,
         "time": ts,
     })
+
+    # Auto-manage sessions from message pings
+    # If no active session for this host, create one
+    has_active = any(
+        s["hostname"] == hostname and s["end"] is None
+        for s in data["sessions"]
+    )
+    if not has_active:
+        data["sessions"].append({
+            "hostname": hostname,
+            "start": ts,
+            "end": None,
+        })
+
+    # Auto-close stale sessions (no message in 10 minutes)
+    for s in data["sessions"]:
+        if s["end"] is not None:
+            continue
+        # Find last message time for this host
+        host_msgs = [m for m in data["messages"] if m["hostname"] == s["hostname"]]
+        if host_msgs:
+            last_msg = max(host_msgs, key=lambda m: m["time"])
+            last_time = datetime.fromisoformat(last_msg["time"])
+            if s["hostname"] != hostname and (now - last_time).total_seconds() > 600:
+                s["end"] = last_msg["time"]
+        else:
+            # No messages, check session start
+            start_time = datetime.fromisoformat(s["start"])
+            if s["hostname"] != hostname and (now - start_time).total_seconds() > 600:
+                s["end"] = ts
 
     save_data(data)
     return jsonify({"ok": True})
