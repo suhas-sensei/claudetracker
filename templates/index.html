@@ -2,33 +2,46 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claude Usage Tracker</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0f0f0f;
+            background: #0a0a0a;
             color: #e0e0e0;
             min-height: 100vh;
-            padding: 2rem;
+            display: flex;
+            justify-content: center;
         }
-        h1 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
+        .app {
+            width: 100%;
+            max-width: 420px;
+            padding: 1.25rem 1rem 6rem;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 1rem 0 1.5rem;
+        }
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
             color: #fff;
+            letter-spacing: -0.02em;
         }
-        .subtitle {
-            color: #888;
-            font-size: 0.85rem;
-            margin-bottom: 2rem;
+        .header .live {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 0.25rem;
         }
         .live-dot {
             display: inline-block;
-            width: 8px; height: 8px;
+            width: 6px; height: 6px;
             background: #4ade80;
             border-radius: 50%;
-            margin-right: 6px;
+            margin-right: 4px;
             animation: pulse 2s infinite;
         }
         @keyframes pulse {
@@ -36,134 +49,172 @@
             50% { opacity: 0.3; }
         }
 
-        /* Stats grid */
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        .stat-card {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
+        /* Period tabs — sticky pill bar */
+        .period-bar {
+            display: flex;
+            gap: 0.35rem;
+            padding: 0.25rem;
+            background: #141414;
             border-radius: 12px;
-            padding: 1.25rem;
+            margin-bottom: 1.25rem;
         }
-        .stat-card .label {
-            font-size: 0.75rem;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+        .period-tab {
+            flex: 1;
+            padding: 0.45rem 0;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: #666;
+            cursor: pointer;
+            font-size: 0.72rem;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.2s;
         }
-        .stat-card .value {
-            font-size: 2rem;
-            font-weight: 700;
+        .period-tab.active {
+            background: #1f1f1f;
             color: #fff;
-            margin-top: 0.25rem;
+            font-weight: 600;
         }
 
-        /* Members section */
-        .members {
+        /* Stats row — 2x2 grid */
+        .stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
+            margin-bottom: 1.25rem;
+        }
+        .stat-card {
+            background: #141414;
+            border-radius: 14px;
+            padding: 1rem;
+        }
+        .stat-card .value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1;
+        }
+        .stat-card .label {
+            font-size: 0.65rem;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 0.35rem;
+        }
+
+        /* Member cards */
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.6rem;
+            padding-left: 0.25rem;
+        }
+        .members {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
         }
         .member-card {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 12px;
-            padding: 1.25rem;
-            position: relative;
+            background: #141414;
+            border-radius: 14px;
+            padding: 1rem;
+            border: 1px solid transparent;
+            transition: border-color 0.3s;
         }
         .member-card.active {
             border-color: #4ade80;
-            box-shadow: 0 0 20px rgba(74, 222, 128, 0.1);
         }
         .member-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
         .member-name {
-            font-size: 1.1rem;
-            font-weight: 600;
+            font-size: 0.95rem;
+            font-weight: 700;
             color: #fff;
             cursor: pointer;
         }
-        .member-name:hover { color: #d4a574; }
         .member-status {
-            font-size: 0.75rem;
-            padding: 0.2rem 0.6rem;
+            font-size: 0.6rem;
+            padding: 0.2rem 0.55rem;
             border-radius: 999px;
-            font-weight: 500;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
         .member-status.online {
-            background: rgba(74, 222, 128, 0.15);
+            background: rgba(74, 222, 128, 0.12);
             color: #4ade80;
         }
         .member-status.offline {
-            background: rgba(136, 136, 136, 0.15);
-            color: #888;
+            background: rgba(100, 100, 100, 0.12);
+            color: #555;
         }
         .member-stats {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 0.75rem;
+            gap: 0.5rem;
+        }
+        .member-stat {
+            text-align: center;
         }
         .member-stat .num {
-            font-size: 1.25rem;
-            font-weight: 700;
+            font-size: 1.1rem;
+            font-weight: 800;
             color: #fff;
         }
         .member-stat .lbl {
-            font-size: 0.7rem;
-            color: #666;
+            font-size: 0.6rem;
+            color: #444;
             text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-top: 0.1rem;
         }
 
         /* Usage bars */
         .usage-section {
-            margin-bottom: 2rem;
-        }
-        .usage-section h2 {
-            font-size: 1rem;
-            margin-bottom: 1rem;
-            color: #ccc;
+            margin-bottom: 1.5rem;
         }
         .bar-chart {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.5rem;
         }
         .bar-row {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.6rem;
         }
         .bar-label {
-            width: 100px;
-            font-size: 0.85rem;
+            width: 70px;
+            font-size: 0.75rem;
             text-align: right;
-            color: #aaa;
+            color: #777;
+            font-weight: 500;
         }
         .bar-track {
             flex: 1;
-            height: 28px;
-            background: #1a1a1a;
-            border-radius: 6px;
+            height: 24px;
+            background: #141414;
+            border-radius: 8px;
             overflow: hidden;
         }
         .bar-fill {
             height: 100%;
-            border-radius: 6px;
+            border-radius: 8px;
             transition: width 0.5s ease;
             display: flex;
             align-items: center;
             padding-left: 8px;
-            font-size: 0.75rem;
-            font-weight: 600;
+            font-size: 0.65rem;
+            font-weight: 700;
             color: #fff;
             min-width: fit-content;
         }
@@ -174,153 +225,154 @@
 
         /* Activity feed */
         .activity {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 12px;
-            padding: 1.25rem;
+            margin-bottom: 1.5rem;
         }
-        .activity h2 {
-            font-size: 1rem;
-            margin-bottom: 1rem;
-            color: #ccc;
+        .activity-list {
+            background: #141414;
+            border-radius: 14px;
+            overflow: hidden;
         }
         .activity-item {
             display: flex;
-            gap: 1rem;
-            padding: 0.6rem 0;
-            border-bottom: 1px solid #222;
-            font-size: 0.85rem;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid #1a1a1a;
+            font-size: 0.78rem;
         }
         .activity-item:last-child { border-bottom: none; }
         .activity-time {
-            color: #666;
+            color: #444;
             white-space: nowrap;
+            font-size: 0.68rem;
             font-family: monospace;
+            min-width: 55px;
         }
-        .activity-text { color: #bbb; }
-        .activity-name { color: #fff; font-weight: 600; }
+        .activity-text { color: #888; }
+        .activity-name { color: #ddd; font-weight: 600; }
+
+        /* Install box */
+        .install-box {
+            background: #141414;
+            border-radius: 14px;
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+        }
+        .install-box h2 {
+            font-size: 0.75rem;
+            color: #555;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .install-box code {
+            display: block;
+            background: #0a0a0a;
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            color: #d4a574;
+            cursor: pointer;
+            user-select: all;
+            word-break: break-all;
+        }
+        .install-box .hint {
+            font-size: 0.6rem;
+            color: #444;
+            margin-top: 0.4rem;
+        }
 
         /* Rename modal */
         .modal-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.8);
             z-index: 100;
-            align-items: center;
+            align-items: flex-end;
             justify-content: center;
         }
         .modal-overlay.show { display: flex; }
         .modal {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 12px;
+            background: #141414;
+            border-radius: 16px 16px 0 0;
             padding: 1.5rem;
-            width: 320px;
+            width: 100%;
+            max-width: 420px;
         }
-        .modal h3 { margin-bottom: 1rem; color: #fff; }
+        .modal h3 {
+            margin-bottom: 1rem;
+            color: #fff;
+            font-size: 1rem;
+        }
         .modal input {
             width: 100%;
-            padding: 0.5rem 0.75rem;
-            background: #0f0f0f;
-            border: 1px solid #333;
-            border-radius: 6px;
+            padding: 0.65rem 0.75rem;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 10px;
             color: #fff;
             font-size: 0.9rem;
             margin-bottom: 1rem;
+            outline: none;
         }
-        .modal-btns { display: flex; gap: 0.5rem; justify-content: flex-end; }
+        .modal input:focus { border-color: #d4a574; }
+        .modal-btns { display: flex; gap: 0.5rem; }
         .modal-btns button {
-            padding: 0.4rem 1rem;
-            border-radius: 6px;
+            flex: 1;
+            padding: 0.6rem;
+            border-radius: 10px;
             border: none;
             cursor: pointer;
             font-size: 0.85rem;
+            font-weight: 600;
         }
-        .btn-cancel { background: #333; color: #ccc; }
-        .btn-save { background: #d4a574; color: #000; font-weight: 600; }
+        .btn-cancel { background: #1f1f1f; color: #888; }
+        .btn-save { background: #d4a574; color: #000; }
 
         .empty-state {
             text-align: center;
-            padding: 3rem;
-            color: #555;
-        }
-        .install-box {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 12px;
-            padding: 1.25rem;
-            margin-bottom: 2rem;
-        }
-        .install-box h2 { font-size: 1rem; color: #ccc; margin-bottom: 0.75rem; }
-        .install-box code {
-            display: block;
-            background: #0f0f0f;
-            padding: 0.75rem 1rem;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            color: #d4a574;
-            cursor: pointer;
-            user-select: all;
-        }
-        .install-box .hint {
-            font-size: 0.75rem;
-            color: #666;
-            margin-top: 0.5rem;
-        }
-
-        /* Period tabs */
-        .period-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-        .period-tab {
-            padding: 0.3rem 0.8rem;
-            border-radius: 6px;
-            border: 1px solid #333;
-            background: transparent;
-            color: #888;
-            cursor: pointer;
+            padding: 2rem 1rem;
+            color: #444;
             font-size: 0.8rem;
-        }
-        .period-tab.active {
-            background: #d4a574;
-            color: #000;
-            border-color: #d4a574;
-            font-weight: 600;
         }
     </style>
 </head>
 <body>
-    <h1>Claude Usage Tracker</h1>
-    <p class="subtitle"><span class="live-dot"></span>Live — updates every 5 seconds</p>
-
-    <div class="install-box">
-        <h2>Install on a friend's machine</h2>
-        <code id="installCmd">curl -s http://YOUR_SERVER:5000/install | bash</code>
-        <p class="hint">Click to copy. They run this once and it's done.</p>
-    </div>
-
-    <div class="stats" id="statsGrid"></div>
-    <div class="members" id="membersGrid"></div>
-
-    <div class="usage-section">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-            <h2 style="margin:0; font-size:1rem; color:#ccc;">Usage Comparison</h2>
-            <div class="period-tabs">
-                <button class="period-tab active" data-period="today">Today</button>
-                <button class="period-tab" data-period="week">This Week</button>
-                <button class="period-tab" data-period="month">This Month</button>
-                <button class="period-tab" data-period="all">All Time</button>
-            </div>
+    <div class="app">
+        <div class="header">
+            <h1>Claude Usage Tracker</h1>
+            <p class="live"><span class="live-dot"></span>Live updates</p>
         </div>
-        <div class="bar-chart" id="barChart"></div>
-    </div>
 
-    <div class="activity">
-        <h2>Recent Activity</h2>
-        <div id="activityFeed"></div>
+        <div class="period-bar">
+            <button class="period-tab active" data-period="today">Today</button>
+            <button class="period-tab" data-period="week">Week</button>
+            <button class="period-tab" data-period="month">Month</button>
+            <button class="period-tab" data-period="all">All</button>
+        </div>
+
+        <div class="stats" id="statsGrid"></div>
+
+        <div class="section-title">Members</div>
+        <div class="members" id="membersGrid"></div>
+
+        <div class="usage-section">
+            <div class="section-title">Usage Comparison</div>
+            <div class="bar-chart" id="barChart"></div>
+        </div>
+
+        <div class="activity">
+            <div class="section-title">Recent Activity</div>
+            <div class="activity-list" id="activityFeed"></div>
+        </div>
+
+        <div class="install-box">
+            <h2>Install on a friend's machine</h2>
+            <code id="installCmd">curl -s http://YOUR_SERVER:5000/install | bash</code>
+            <p class="hint">Tap to copy. They run this once.</p>
+        </div>
     </div>
 
     <!-- Rename modal -->
@@ -340,7 +392,6 @@
         let currentPeriod = "today";
         let renameHostname = null;
 
-        // Update install command with current URL
         const installCmd = document.getElementById("installCmd");
         installCmd.textContent = `curl -s ${window.location.origin}/install | bash`;
         installCmd.addEventListener("click", () => {
@@ -349,7 +400,6 @@
             setTimeout(() => installCmd.style.color = "#d4a574", 1000);
         });
 
-        // Period tabs
         document.querySelectorAll(".period-tab").forEach(tab => {
             tab.addEventListener("click", () => {
                 document.querySelector(".period-tab.active").classList.remove("active");
@@ -408,17 +458,15 @@
             const d = new Date(isoStr);
             const now = new Date();
             const diff = now - d;
-            if (diff < 60000) return "just now";
-            if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
-            if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
+            if (diff < 60000) return "now";
+            if (diff < 3600000) return `${Math.floor(diff/60000)}m`;
+            if (diff < 86400000) return `${Math.floor(diff/3600000)}h`;
             return d.toLocaleDateString();
         }
 
         function render() {
             const hostnames = Object.keys(currentData.members);
             const sessions = filterSessions(currentPeriod);
-
-            // Stats
             const messages = filterMessages(currentPeriod);
             const totalSessions = sessions.length;
             const totalMessages = messages.length;
@@ -427,27 +475,26 @@
 
             document.getElementById("statsGrid").innerHTML = `
                 <div class="stat-card">
-                    <div class="label">Total Messages (${currentPeriod})</div>
                     <div class="value">${totalMessages}</div>
+                    <div class="label">Messages</div>
                 </div>
                 <div class="stat-card">
-                    <div class="label">Total Sessions</div>
                     <div class="value">${totalSessions}</div>
+                    <div class="label">Sessions</div>
                 </div>
                 <div class="stat-card">
-                    <div class="label">Total Time</div>
                     <div class="value">${formatDuration(totalMins)}</div>
+                    <div class="label">Total Time</div>
                 </div>
                 <div class="stat-card">
-                    <div class="label">Active Now</div>
                     <div class="value">${activeCount}</div>
+                    <div class="label">Active Now</div>
                 </div>
             `;
 
-            // Member cards
             if (hostnames.length === 0) {
                 document.getElementById("membersGrid").innerHTML = `
-                    <div class="empty-state">No members yet. Share the install command above.</div>
+                    <div class="empty-state">No members yet. Share the install command below.</div>
                 `;
             } else {
                 document.getElementById("membersGrid").innerHTML = hostnames.map(h => {
@@ -455,7 +502,6 @@
                     const memberSessions = sessions.filter(s => s.hostname === h);
                     const memberMessages = messages.filter(m => m.hostname === h);
                     const memberMins = memberSessions.reduce((sum, s) => sum + sessionMinutes(s), 0);
-                    const lastSession = currentData.sessions.filter(s => s.hostname === h).slice(-1)[0];
                     return `
                         <div class="member-card ${active ? 'active' : ''}">
                             <div class="member-header">
@@ -481,7 +527,6 @@
                 }).join("");
             }
 
-            // Bar chart — compare messages
             const maxMsgs = Math.max(1, ...hostnames.map(h =>
                 messages.filter(m => m.hostname === h).length
             ));
@@ -499,19 +544,18 @@
                 `;
             }).join("");
 
-            // Activity feed — merge sessions and messages, sort by time
             const allEvents = [
                 ...currentData.sessions.map(s => ({
                     hostname: s.hostname,
                     time: s.end || s.start,
-                    text: s.end ? `ended a session (${formatDuration(sessionMinutes(s))})` : `started a session`
+                    text: s.end ? `session (${formatDuration(sessionMinutes(s))})` : `started session`
                 })),
                 ...(currentData.messages || []).map(m => ({
                     hostname: m.hostname,
                     time: m.time,
-                    text: `sent a message`
+                    text: `message`
                 }))
-            ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 30);
+            ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 20);
 
             if (allEvents.length === 0) {
                 document.getElementById("activityFeed").innerHTML = `
@@ -564,7 +608,6 @@
             } catch (e) {}
         }
 
-        // Poll every 5 seconds
         fetchData();
         setInterval(fetchData, 5000);
     </script>
