@@ -110,114 +110,95 @@ def install_script():
     server_url = request.host_url.rstrip("/")
     if request.headers.get("X-Forwarded-Proto") == "https":
         server_url = server_url.replace("http://", "https://")
-    script = f"""#!/bin/bash
-# Claude Usage Tracker - One-time install
-# This wraps the claude command to track session usage.
 
-SERVER="{server_url}"
+    script = r"""#!/bin/bash
+# Claude Usage Tracker - One-time install
+
+SERVER="__SERVER_URL__"
 WRAPPER="$HOME/.claude-tracker.sh"
 REAL_CLAUDE=$(which claude 2>/dev/null || echo "claude")
 
 # Create the wrapper script
-cat > "$WRAPPER" << 'SCRIPT'
+cat > "$WRAPPER" << 'WRAPPEREOF'
 #!/bin/bash
-SERVER="{server_url}"
+SERVER="__SERVER_URL__"
 HOSTNAME=$(hostname)
 REAL_CLAUDE=$(grep '^# REAL_CLAUDE=' "$0" | cut -d= -f2)
 
-# Ping start
-curl -s -X POST "$SERVER/api/ping" \\
-  -H "Content-Type: application/json" \\
-  -d "{{\\"hostname\\": \\"$HOSTNAME\\", \\"event\\": \\"start\\"}}" > /dev/null 2>&1 &
+curl -s -X POST "$SERVER/api/ping" \
+  -H "Content-Type: application/json" \
+  -d "{\"hostname\": \"$HOSTNAME\", \"event\": \"start\"}" > /dev/null 2>&1 &
 
-# Run the real claude with all arguments
 $REAL_CLAUDE "$@"
 EXIT_CODE=$?
 
-# Ping stop
-curl -s -X POST "$SERVER/api/ping" \\
-  -H "Content-Type: application/json" \\
-  -d "{{\\"hostname\\": \\"$HOSTNAME\\", \\"event\\": \\"stop\\"}}" > /dev/null 2>&1 &
+curl -s -X POST "$SERVER/api/ping" \
+  -H "Content-Type: application/json" \
+  -d "{\"hostname\": \"$HOSTNAME\", \"event\": \"stop\"}" > /dev/null 2>&1 &
 
 exit $EXIT_CODE
-SCRIPT
+WRAPPEREOF
 
-# Embed the real claude path
 echo "# REAL_CLAUDE=$REAL_CLAUDE" >> "$WRAPPER"
 chmod +x "$WRAPPER"
 
 # Add alias to shell profile
 ALIAS_LINE='alias claude="$HOME/.claude-tracker.sh"'
-ADDED=false
-
 for RC in "$HOME/.bashrc" "$HOME/.zshrc"; do
     if [ -f "$RC" ]; then
         if ! grep -q "claude-tracker" "$RC"; then
             echo "" >> "$RC"
             echo "# Claude Usage Tracker" >> "$RC"
             echo "$ALIAS_LINE" >> "$RC"
-            ADDED=true
         fi
     fi
 done
-
-# Also try to add to current shell
 eval "$ALIAS_LINE"
 
-# Set up Claude Code hook to count messages
-CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+# Create Claude Code hook script to count messages
 HOOK_SCRIPT="$HOME/.claude-tracker-hook.sh"
-
-# Create the hook script
-cat > "$HOOK_SCRIPT" << HOOKEOF
+cat > "$HOOK_SCRIPT" << 'HOOKEOF'
 #!/bin/bash
-curl -s -X POST "{server_url}/api/message" \\
-  -H "Content-Type: application/json" \\
-  -d "{{\\"hostname\\": \\"$(hostname)\\"}}}" > /dev/null 2>&1
+curl -s -X POST "__SERVER_URL__/api/message" \
+  -H "Content-Type: application/json" \
+  -d "{\"hostname\": \"$(hostname)\"}" > /dev/null 2>&1
 HOOKEOF
 chmod +x "$HOOK_SCRIPT"
 
 # Add hook to Claude Code settings
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 mkdir -p "$HOME/.claude"
 if [ -f "$CLAUDE_SETTINGS" ]; then
-    # Check if hooks already configured
     if ! grep -q "claude-tracker-hook" "$CLAUDE_SETTINGS"; then
-        # Use python/node to merge JSON if available
         if command -v python3 &> /dev/null; then
-            python3 -c "
+            python3 << PYEOF
 import json
 with open('$CLAUDE_SETTINGS') as f:
     cfg = json.load(f)
-cfg.setdefault('hooks', {{}})
-cfg['hooks']['Notification'] = [{{
-    'matcher': '',
-    'hooks': [{{
-        'type': 'command',
-        'command': '$HOOK_SCRIPT'
-    }}]
-}}]
+cfg.setdefault('hooks', {})
+cfg['hooks']['Notification'] = [{'matcher': '', 'hooks': [{'type': 'command', 'command': '$HOOK_SCRIPT'}]}]
 with open('$CLAUDE_SETTINGS', 'w') as f:
     json.dump(cfg, f, indent=2)
-"
+PYEOF
         fi
     fi
 else
     cat > "$CLAUDE_SETTINGS" << SETTINGSEOF
-{{
-  "hooks": {{
+{
+  "hooks": {
     "Notification": [
-      {{
+      {
         "matcher": "",
         "hooks": [
-          {{
+          {
             "type": "command",
             "command": "$HOOK_SCRIPT"
-          }}
+          }
         ]
-      }}
+      }
     ]
-  }}
-}}
+  }
+}
 SETTINGSEOF
 fi
 
@@ -228,11 +209,12 @@ echo "Dashboard: $SERVER"
 echo ""
 echo "Restart your terminal or run: source ~/.bashrc"
 """
+    script = script.replace("__SERVER_URL__", server_url)
     return Response(script, mimetype="text/plain")
 
 
 if not DATA_FILE.exists():
-    save_data({"members": {}, "sessions": []})
+    save_data({"members": {}, "sessions": [], "messages": []})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
