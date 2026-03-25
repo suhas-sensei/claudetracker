@@ -176,7 +176,8 @@ import json
 with open('$CLAUDE_SETTINGS') as f:
     cfg = json.load(f)
 cfg.setdefault('hooks', {})
-cfg['hooks']['Notification'] = [{'matcher': '', 'hooks': [{'type': 'command', 'command': '$HOOK_SCRIPT'}]}]
+cfg.setdefault('hooks', {}).setdefault('Stop', [{'hooks': []}])
+cfg['hooks']['Stop'][0]['hooks'].append({'type': 'command', 'command': '$HOOK_SCRIPT'})
 with open('$CLAUDE_SETTINGS', 'w') as f:
     json.dump(cfg, f, indent=2)
 PYEOF
@@ -186,9 +187,8 @@ else
     cat > "$CLAUDE_SETTINGS" << SETTINGSEOF
 {
   "hooks": {
-    "Notification": [
+    "Stop": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
